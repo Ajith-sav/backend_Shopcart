@@ -8,7 +8,6 @@ urlpatterns = [
     path("", views.product_list, name="product-list"),
     path("<slug:slug>", views.product_detail, name="product_detail"),
     path("search/", views.search_product, name="search_product"),
+    path("categories/", views.get_category, name="category-list"),
+    path("categories/<int:pk>/", views.category_detail, name="category-detail"),
 ]
-
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

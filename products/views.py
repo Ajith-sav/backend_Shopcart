@@ -1,5 +1,5 @@
 from django.db.models import Q
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from django.utils.text import slugify
 from rest_framework import permissions, status
 from rest_framework.decorators import (
@@ -14,6 +14,51 @@ from .models import Category, Products
 from .serializers import CategorySerializer, ProductSerializer
 
 
+def is_owner(request, product):
+    return request.user.is_vendor and product.vendor_id == request.user.id
+
+
+# Category Views
+@api_view(["GET", "POST"])
+@authentication_classes([JWTAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def get_category(request):
+    if request.method == "GET":
+        categories = Category.objects.all()
+        serializer = CategorySerializer(categories, many=True)
+        return Response(serializer.data)
+
+    elif request.method == "POST":
+        serializer = CategorySerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["GET", "PUT", "DELETE"])
+@authentication_classes([JWTAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def category_detail(request, pk):
+    category = get_object_or_404(Category, pk=pk)
+
+    if request.method == "GET":
+        serializer = CategorySerializer(category)
+        return Response(serializer.data)
+
+    elif request.method == "PUT":
+        serializer = CategorySerializer(category, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    elif request.method == "DELETE":
+        category.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# Product Views
 @api_view(["GET", "POST"])
 @authentication_classes([JWTAuthentication])
 @permission_classes([permissions.IsAuthenticated])
@@ -21,11 +66,15 @@ def product_list(request):
     if request.method == "GET":
         if request.user.is_vendor:
             products = Products.objects.filter(vendor_id=request.user.id)
-            serializer = ProductSerializer(products, many=True)
+            serializer = ProductSerializer(
+                products, context={"request": request}, many=True
+            )
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
             products = Products.objects.all()
-            serializer = ProductSerializer(products, many=True)
+            serializer = ProductSerializer(
+                products, context={"request": request}, many=True
+            )
             return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == "POST":
@@ -44,22 +93,22 @@ def product_list(request):
             )
 
 
-@api_view(["GET", "POST", "PUT", "DELETE"])
+@api_view(["GET", "PUT", "DELETE"])
 @authentication_classes([JWTAuthentication])
 @permission_classes([permissions.IsAuthenticated])
 def product_detail(request, slug):
 
-    try:
-        product = Products.objects.get(slug=slug)
-    except Products.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
+    product = get_object_or_404(Products, slug=slug)
 
     if request.method == "GET":
-        serializer = ProductSerializer(product)
+        serializer = ProductSerializer(
+            product,
+            context={"request": request},
+        )
         return Response(serializer.data)
 
     elif request.method == "PUT":
-        if request.user.is_vendor and product.vendor == request.user.id:
+        if is_owner(request, product):
             serializer = ProductSerializer(
                 product, data=request.data, context={"request": request}
             )
@@ -74,7 +123,7 @@ def product_detail(request, slug):
             )
 
     elif request.method == "DELETE":
-        if request.user.is_vendor and product.vendor == request.user.id:
+        if is_owner(request, product):
             product.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
@@ -84,6 +133,7 @@ def product_detail(request, slug):
             )
 
 
+# Search
 @api_view(["GET"])
 @authentication_classes([JWTAuthentication])
 @permission_classes([permissions.IsAuthenticated])
