@@ -15,7 +15,7 @@ from .serializers import CategorySerializer, ProductSerializer
 
 
 def is_owner(request, product):
-    return request.user.is_vendor and product.vendor_id == request.user.id
+    return request.user.role == "vendor" and product.vendor_id == request.user.id
 
 
 # Category Views
@@ -29,11 +29,17 @@ def get_category(request):
         return Response(serializer.data)
 
     elif request.method == "POST":
-        serializer = CategorySerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        if request.user.role == "vendor":
+            serializer = CategorySerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response(
+                {"detail": "You do not have permission to perform this action."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
 
 @api_view(["GET", "PUT", "DELETE"])
@@ -47,15 +53,17 @@ def category_detail(request, pk):
         return Response(serializer.data)
 
     elif request.method == "PUT":
-        serializer = CategorySerializer(category, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        if request.user.role == "vendor":
+            serializer = CategorySerializer(category, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     elif request.method == "DELETE":
-        category.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        if request.user.role == "vendor" or request.user.role == "admin":
+            category.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 # Product Views
@@ -64,7 +72,7 @@ def category_detail(request, pk):
 @permission_classes([permissions.IsAuthenticated])
 def product_list(request):
     if request.method == "GET":
-        if request.user.is_vendor:
+        if request.user.role == "vendor":
             products = Products.objects.filter(vendor_id=request.user.id)
             serializer = ProductSerializer(
                 products, context={"request": request}, many=True
@@ -78,7 +86,7 @@ def product_list(request):
             return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == "POST":
-        if request.user.is_vendor:
+        if request.user.role == "vendor":
             serializer = ProductSerializer(
                 data=request.data, context={"request": request}
             )
@@ -123,7 +131,7 @@ def product_detail(request, slug):
             )
 
     elif request.method == "DELETE":
-        if is_owner(request, product):
+        if is_owner(request, product) or (request.user.role == "admin"):
             product.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
@@ -147,7 +155,7 @@ def search_product(request):
                 | Q(brand_name__icontains=query)
                 | Q(categories__name__icontains=query)
             ).distinct()
-            if request.user.is_vendor:
+            if request.user.role == "vendor":
                 product = products.filter(vendor_id=request.user.id)
                 serializer = ProductSerializer(product, many=True)
                 return Response(serializer.data)
