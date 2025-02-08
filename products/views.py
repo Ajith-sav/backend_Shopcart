@@ -157,7 +157,9 @@ def search_product(request):
             ).distinct()
             if request.user.role == "vendor":
                 product = products.filter(vendor_id=request.user.id)
-                serializer = ProductSerializer(product, many=True)
+                serializer = ProductSerializer(
+                    product, context={"request": request}, many=True
+                )
                 return Response(serializer.data)
 
             serializer = ProductSerializer(products, many=True)
