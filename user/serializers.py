@@ -1,5 +1,6 @@
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 
 from .models import CustomUser
 
@@ -9,6 +10,13 @@ class CustomUserRegisterSerializer(serializers.ModelSerializer):
         write_only=True, required=True, validators=[validate_password]
     )
     password2 = serializers.CharField(write_only=True, required=True)
+    role = serializers.ChoiceField(choices=CustomUser.ROLE_CHOICES, required=True)
+    email = serializers.EmailField(
+        required=True, validators=[UniqueValidator(queryset=CustomUser.objects.all())]
+    )
+    username = serializers.CharField(
+        required=True, validators=[UniqueValidator(queryset=CustomUser.objects.all())]
+    )
 
     class Meta:
         model = CustomUser
@@ -16,7 +24,7 @@ class CustomUserRegisterSerializer(serializers.ModelSerializer):
             "username",
             "email",
             "phone_number",
-            "is_vendor",
+            "role",
             "password",
             "password2",
             "created_at",
@@ -25,16 +33,10 @@ class CustomUserRegisterSerializer(serializers.ModelSerializer):
         read_only_fields = ("created_at", "updated_at")
 
     def validate(self, attrs):
-
         if attrs["password"] != attrs["password2"]:
             raise serializers.ValidationError(
                 {"password": "password field does not match"}
             )
-        if CustomUser.objects.filter(username=attrs["username"]).exists():
-            raise serializers.ValidationError(
-                {"username": ("A user with that username already exists.")}
-            )
-
         return attrs
 
     def create(self, validated_data):
@@ -43,6 +45,7 @@ class CustomUserRegisterSerializer(serializers.ModelSerializer):
             username=validated_data["username"],
             email=validated_data["email"],
             phone_number=validated_data["phone_number"],
+            role=validated_data["role"],
         )
         user.set_password(validated_data["password"])
         user.save()

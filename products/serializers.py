@@ -42,8 +42,9 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def get_photo_url(self, obj):
         request = self.context.get("request")
-        photo_url = obj.fingerprint.url
-        return request.build_absolute_uri(photo_url)
+        if obj.image and hasattr(obj.image, "url"):
+            return request.build_absolute_uri(obj.image.url)
+        return None
 
     def validate_price(self, value):
         if value <= 0:

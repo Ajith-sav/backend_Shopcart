@@ -1,11 +1,9 @@
-from django.conf import settings
-from django.conf.urls.static import static
 from django.urls import path
 
 from . import views
 
 urlpatterns = [
-    path("", views.product_list, name="product-list"),
+    path("", views.product_list, name="product_list"),
     path("<slug:slug>", views.product_detail, name="product_detail"),
     path("search/", views.search_product, name="search_product"),
     path("categories/", views.get_category, name="category-list"),

@@ -8,7 +8,6 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import CustomUser
 from .serializers import CustomUserRegisterSerializer
 
 
@@ -25,6 +24,15 @@ class CustomUserRegisterView(generics.CreateAPIView):
         )
 
 
+class UserDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        serializer = CustomUserRegisterSerializer(user)
+        return Response(serializer.data)
+
+
 class CustomUserLoginView(generics.GenericAPIView):
 
     class LoginSerializer(serializers.Serializer):
@@ -38,6 +46,7 @@ class CustomUserLoginView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = authenticate(
+            request,
             email=serializer.validated_data["email"],
             password=serializer.validated_data["password"],
         )
