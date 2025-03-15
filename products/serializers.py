@@ -1,7 +1,6 @@
-# from django.db import transaction
 from rest_framework import serializers
 
-from .models import Category, Products
+from .models import *
 
 
 class CategorySerializer(serializers.ModelSerializer):

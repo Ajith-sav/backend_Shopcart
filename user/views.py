@@ -1,14 +1,14 @@
 import logging
 
-from django.contrib.auth import authenticate
-from rest_framework import generics, serializers, status
+from django.contrib.auth import authenticate, get_user_model
+from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import CustomUserRegisterSerializer
+from .serializers import *
 
 
 class CustomUserRegisterView(generics.CreateAPIView):
@@ -35,20 +35,28 @@ class UserDetailView(APIView):
 
 class CustomUserLoginView(generics.GenericAPIView):
 
-    class LoginSerializer(serializers.Serializer):
-        email = serializers.EmailField()
-        password = serializers.CharField(write_only=True)
-
     serializer_class = LoginSerializer
 
     def post(self, request, *args, **kargs):
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data["email"]
+        password = serializer.validated_data["password"]
+
+        try:
+            User = get_user_model()
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response(
+                {"detail": "User with this email does not exist."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         user = authenticate(
             request,
-            email=serializer.validated_data["email"],
-            password=serializer.validated_data["password"],
+            email=email,
+            password=password,
         )
         if user is not None:
             refresh = RefreshToken.for_user(user)
@@ -60,7 +68,7 @@ class CustomUserLoginView(generics.GenericAPIView):
                 status=status.HTTP_200_OK,
             )
         return Response(
-            {"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED
+            {"detail": "Incorrect Password."}, status=status.HTTP_400_BAD_REQUEST
         )
 
 

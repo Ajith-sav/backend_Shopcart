@@ -6,6 +6,9 @@ class IsStaffAndSelf(permissions.BasePermission):
         if request.method == "GET":
             return True
 
+        if request.method == "POST":
+            return request.user.role == "admin"
+
         if request.method == "DELETE":
             return request.user.role == "admin"
 

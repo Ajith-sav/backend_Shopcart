@@ -162,7 +162,9 @@ def search_product(request):
                 )
                 return Response(serializer.data)
 
-            serializer = ProductSerializer(products, many=True)
+            serializer = ProductSerializer(
+                products, context={"request": request}, many=True
+            )
             return Response(serializer.data)
         else:
             return Response(status=status.HTTP_404_NOT_FOUND)
