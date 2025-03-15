@@ -10,7 +10,7 @@ class CustomUserRegisterSerializer(serializers.ModelSerializer):
         write_only=True, required=True, validators=[validate_password]
     )
     password2 = serializers.CharField(write_only=True, required=True)
-    role = serializers.ChoiceField(choices=CustomUser.ROLE_CHOICES, required=True)
+    role = serializers.ChoiceField(choices=CustomUser.ROLE_CHOICES, required=False)
     email = serializers.EmailField(
         required=True, validators=[UniqueValidator(queryset=CustomUser.objects.all())]
     )
@@ -45,8 +45,13 @@ class CustomUserRegisterSerializer(serializers.ModelSerializer):
             username=validated_data["username"],
             email=validated_data["email"],
             phone_number=validated_data["phone_number"],
-            role=validated_data["role"],
+            role=validated_data.get("role", "customer"),
         )
         user.set_password(validated_data["password"])
         user.save()
         return {"message": "User signup successful."}
+
+
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)

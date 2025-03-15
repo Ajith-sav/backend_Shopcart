@@ -28,7 +28,7 @@ class Products(models.Model):
     name = models.CharField(max_length=150, blank=False, null=False)
     brand_name = models.CharField(max_length=150, blank=False, null=False)
     slug = models.SlugField(unique=True, blank=True)
-    description = models.TextField(max_length=512, blank=False, null=False)
+    description = models.TextField(blank=False, null=False)
     image = models.ImageField(
         upload_to=getFileName, null=True, help_text="Image of the product"
     )
