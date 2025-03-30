@@ -1,0 +1,13 @@
+.env
+
+/.vscode
+
+/.venv
+
+/.gitignore
+/.gitattributes
+
+README.md
+
+dockerfile
+

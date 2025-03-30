@@ -91,11 +91,15 @@ WSGI_APPLICATION = "shop_cart.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": "shop_cart",
-        "USER": "root",
-        "PASSWORD": "root@123",
-        "HOST": "127.0.0.1",
+        "NAME": os.getenv("DB_NAME", "shop_kart"),
+        "USER": os.getenv("DB_USER", "root"),
+        "PASSWORD": os.getenv("DB_PASSWORD", "root@123"),
+        "HOST": os.getenv("DB_HOST", "db"),
+        # "HOST": "host.docker.internal",
         "POST": "3306",
+        "OPTIONS": {
+            "connect_timeout": 30,
+        },
     }
 }
 
