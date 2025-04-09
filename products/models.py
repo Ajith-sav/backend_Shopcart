@@ -5,8 +5,6 @@ from django.conf import settings
 from django.db import models
 from django.utils.text import slugify
 
-# Create your models here.
-
 
 def getFileName(request, filename):
     now_time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
