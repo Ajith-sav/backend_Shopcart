@@ -1,14 +1,26 @@
 import logging
+from datetime import timedelta
 
-from django.contrib.auth import authenticate, get_user_model
+import pyotp
+from django.conf import settings
+from django.contrib.auth import authenticate, get_user_model, update_session_auth_hash
+from django.core.cache import cache
+from django.core.mail import send_mail
+from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from .models import *
 from .serializers import *
+from .service import *
+
+User = get_user_model()
 
 
 class CustomUserRegisterView(generics.CreateAPIView):
@@ -76,7 +88,6 @@ logger = logging.getLogger(__name__)
 
 
 class CustomUserLogout(APIView):
-    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         refresh_token = request.data.get("refresh")
@@ -100,3 +111,135 @@ class CustomUserLogout(APIView):
                 {"success": False, "detail": "Invalid token"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+
+class AccountPasswordChange(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    def post(self, request):
+        serializer = ChangePasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            user = request.user
+            if user.check_password(serializer.data.get("old_password")):
+                user.set_password(serializer.data.get("new_password"))
+                user.save()
+                update_session_auth_hash(request, user)
+                return Response(
+                    {"message": "Password changed successfully"},
+                    status=status.HTTP_200_OK,
+                )
+            return Response(
+                {"detail": "Incorrect Password"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SendOTPView(APIView):
+    """View to send OTP to user's email"""
+
+    def post(self, request):
+        serializer = SendOTPSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        email = serializer.validated_data["email"]
+
+        try:
+            user = CustomUser.objects.get(email=email)
+            otp_record = OTPService.create_or_update_otp(user)
+            otp_code = OTPManager.generate_otp_code(otp_record.otp_secret)
+
+            # Send email with OTP code (implement your email service)
+            send_to_email(email, user, otp_code)
+
+            logger.info(f"OTP sent to {email}")
+            return Response(
+                {"detail": "OTP sent successfully"}, status=status.HTTP_200_OK
+            )
+
+        except CustomUser.DoesNotExist:
+            logger.warning(f"Attempt to send OTP to non-existent email: {email}")
+            return Response(
+                {"detail": "User with this email does not exist"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception as e:
+            logger.error(f"Error sending OTP to {email}: {str(e)}")
+            return Response(
+                {"detail": "Failed to send OTP"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class VerifyOTPView(APIView):
+    """View to verify OTP code"""
+
+    def post(self, request):
+        serializer = VerifyOTPSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        email = serializer.validated_data["email"]
+        otp_code = serializer.validated_data["otp"]
+
+        try:
+            user = CustomUser.objects.get(email=email)
+            otp_record = OTPService.get_valid_otp_record(user)
+
+            if not otp_record:
+                return Response(
+                    {"detail": "No active OTP found or OTP expired"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if not OTPManager.verify_otp(otp_record.otp_secret, otp_code):
+                return Response(
+                    {"detail": "Invalid OTP"}, status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Mark OTP as verified
+            otp_record.is_verified = True
+            otp_record.save()
+
+            logger.info(f"OTP verified for user {email}")
+            return Response(
+                {"detail": "OTP verified successfully"}, status=status.HTTP_200_OK
+            )
+
+        except CustomUser.DoesNotExist:
+            return Response(
+                {"detail": "User not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Error verifying OTP for {email}: {str(e)}")
+            return Response(
+                {"detail": "Error verifying OTP"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class PasswordResetView(APIView):
+    def post(self, request):
+        serializer = PasswordResetSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data["email"]
+            new_password = serializer.validated_data["new_password"]
+            try:
+                user = User.objects.get(email=email)
+
+                if user:
+                    user.set_password(new_password)
+                    user.save()
+                    return Response(
+                        {"message": "Password reset successfully"},
+                        status=status.HTTP_200_OK,
+                    )
+                return Response(
+                    {"error": "OTP not verified"}, status=status.HTTP_400_BAD_REQUEST
+                )
+            except User.DoesNotExist:
+                return Response(
+                    {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+                )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
