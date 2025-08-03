@@ -16,7 +16,7 @@ ShopKart Backend is a robust and scalable backend system for an e-commerce platf
 ## Tech Stack
 
 - **Backend Framework**: Django Rest Framework (DRF)
-- **Database**: MySQL
+- **Database**: PostgreSQL
 - **Authentication**: JWT Authentication
 
 ## Installation
@@ -24,7 +24,7 @@ ShopKart Backend is a robust and scalable backend system for an e-commerce platf
 ### Prerequisites
 
 - Python 3.13
-- MySQL
+- PostgreSQL
 - Virtual environment (Recommended)
 
 ### Steps to Set Up

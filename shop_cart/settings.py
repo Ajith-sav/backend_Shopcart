@@ -48,10 +48,10 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "django_rest_passwordreset",
     "corsheaders",
-    "user",
-    "products",
-    "banners",
-    "orders",
+    "modules.user",
+    "modules.products",
+    "modules.banners",
+    "modules.orders",
 ]
 
 MIDDLEWARE = [
@@ -95,16 +95,13 @@ WSGI_APPLICATION = "shop_cart.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.mysql",
+        "ENGINE": os.getenv("DATABASE"),
         "NAME": os.getenv("DB_NAME"),
         "USER": os.getenv("DB_USER"),
         "PASSWORD": os.getenv("DB_PASSWORD"),
-        # "HOST": os.getenv("DB_HOST", "db"),
         "HOST": os.getenv("DB_HOST"),
-        "POST": "3306",
-        "OPTIONS": {
-            "connect_timeout": 30,
-        },
+        "POST": os.getenv("DB_PORT"),
+        "OPTIONS": {"options": "-c search_path=application"},
     }
 }
 

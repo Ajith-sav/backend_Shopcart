@@ -1,0 +1,165 @@
+[MASTER]
+
+# Load Django plugin
+load-plugins=pylint_django
+
+# Specify the Python version
+python-version=3.8
+
+# Ignore these files or directories
+ignore=CVS,.git,.hg,.svn,migrations,node_modules,static,media
+
+# Add files or directories to the Python path
+init-hook='
+import sys;
+from pylint.config import find_pylintrc;
+sys.path.append(".")
+'
+
+[MESSAGES CONTROL]
+
+# Disable these messages
+disable=
+    # General Python
+    missing-docstring,
+    too-few-public-methods,
+    # Django-specific
+    no-self-use,
+    # Formatting
+    bad-whitespace,
+    line-too-long,
+    # Compatibility
+    useless-object-inheritance,
+    # Others
+    fixme,
+    duplicate-code,
+    # Django model fields
+    no-member
+
+# Enable these messages
+enable=
+    c-extension-no-member
+
+[REPORTS]
+
+# Output format
+output-format=colorized
+
+# Include message's id in output
+include-ids=yes
+
+[FORMAT]
+
+# Maximum number of characters on a single line
+max-line-length=120
+
+# Expected format of module names
+module-rgx=^[a-z][a-z0-9_]*$
+
+# Expected format of function names
+function-rgx=^[a-z][a-z0-9_]*$
+
+# Expected format of method names
+method-rgx=^[a-z][a-z0-9_]*$
+
+# Expected format of class names
+class-rgx=^[A-Z][a-zA-Z0-9]*$
+
+# Expected format of variable names
+variable-rgx=^[a-z][a-z0-9_]*$
+
+# Expected format of constant names
+const-rgx=^[A-Z][A-Z0-9_]*$
+
+[BASIC]
+
+# Required module docstring
+required-attributes=
+
+# List of builtins function names that should not be used
+bad-functions=apply,input,reduce
+
+# Good variable names which should always be accepted
+good-names=i,j,k,ex,Run,_
+
+[TYPECHECK]
+
+# List of class names for which member attributes should not be checked
+ignored-classes=optparse.Values,thread._local,_thread._local,django.utils.safestring.SafeText,django.utils.safestring.SafeString
+
+# List of module names for which member attributes should not be checked
+ignored-modules=
+
+[VARIABLES]
+
+# Tells whether we should check for unused import in __init__ files
+init-import=no
+
+# A regular expression matching names used for dummy variables
+dummy-variables-rgx=^(_+|[_a-z][_a-z0-9]*)$
+
+[DESIGN]
+
+# Maximum number of arguments for function / method
+max-args=8
+
+# Maximum number of locals for function / method body
+max-locals=15
+
+# Maximum number of return / yield for function / method body
+max-returns=6
+
+# Maximum number of branch for function / method body
+max-branches=12
+
+# Maximum number of statements in function / method body
+max-statements=50
+
+# Maximum number of parents for a class
+max-parents=7
+
+# Maximum number of attributes for a class
+max-attributes=15
+
+[IMPORTS]
+
+# Deprecated modules which should not be used
+deprecated-modules=regsub,TERMIOS,Bastion,rexec
+
+# Sets the required import level to verify
+import-graph=
+
+# Allow wildcard imports
+allow-wildcard-with-all=no
+
+# Allow ungrouped imports
+allow-ungrouped-imports=no
+
+[CLASSES]
+
+# List of interface methods to ignore
+# ignore-iface-methods=
+
+# List of method names used to declare (i.e. assign) instance attributes
+defining-attr-methods=__init__,__new__,setUp
+
+[EXCEPTIONS]
+
+# Exceptions that will emit a warning when caught
+overgeneral-exceptions=Exception
+
+[LOGGING]
+
+# Logging format string
+logging-format-style=new
+
+[SPELLING]
+
+# Spelling dictionary name
+spelling-dict=en_US
+
+# List of comma separated words that should not be checked
+spelling-ignore-words=
+
+# Max length of doc lines
+max-spelling-suggestions=4
